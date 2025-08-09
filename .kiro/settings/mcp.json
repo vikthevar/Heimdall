@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": ["search_documentation", "get_service_info"]
+    },
+    "filesystem": {
+      "command": "uvx",
+      "args": ["mcp-server-filesystem", "--", "Heimdall/"],
+      "disabled": false,
+      "autoApprove": ["read_file", "list_directory"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--", "Heimdall/"],
+      "disabled": false,
+      "autoApprove": ["git_status", "git_log", "git_diff"]
+    },
+    "python-tools": {
+      "command": "uvx",
+      "args": ["mcp-server-python"],
+      "disabled": false,
+      "autoApprove": ["run_python", "install_package"]
+    }
+  }
+}

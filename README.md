@@ -46,8 +46,8 @@ Heimdall is an intelligent voice assistant designed to help visually impaired an
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/heimdall.git
-   cd heimdall
+   git clone https://github.com/kushallg/Heimdall.git
+   cd Heimdall
    ```
 
 2. **Create virtual environment**
@@ -76,7 +76,11 @@ Heimdall is an intelligent voice assistant designed to help visually impaired an
 5. **Set up environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your API keys
+   # Edit .env with your actual API keys:
+   # - OPENAI_API_KEY: Your OpenAI API key
+   # - ELEVENLABS_API_KEY: Your ElevenLabs API key  
+   # - AWS_ACCESS_KEY_ID: Your AWS access key
+   # - AWS_SECRET_ACCESS_KEY: Your AWS secret key
    ```
 
 6. **Run Heimdall**
