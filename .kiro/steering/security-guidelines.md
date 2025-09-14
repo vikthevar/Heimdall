@@ -30,11 +30,11 @@ inclusion: always
 - Secure transmission to speech services
 - Local fallback when possible
 
-## AWS Integration Security
-- Use IAM roles with minimal permissions
-- Implement proper error handling for AWS failures
-- Log all AWS operations for audit
-- Regular security reviews of cloud resources
+## Local Storage Security
+- Use file system permissions to protect local data
+- Implement secure deletion for sensitive files
+- Regular cleanup of temporary files and logs
+- Encrypt sensitive data at rest using local encryption
 
 ## Code Security Standards
 - Input validation for all user commands

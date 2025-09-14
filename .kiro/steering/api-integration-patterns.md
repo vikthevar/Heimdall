@@ -4,69 +4,84 @@ inclusion: always
 
 # API Integration Patterns for Heimdall
 
-## OpenAI Integration Standards
+## Local Whisper Integration Standards
 ```python
-# Always use async clients for better performance
-from openai import AsyncOpenAI
+# Use local Whisper for speech recognition
+import whisper
+import asyncio
 
-class OpenAIClient:
-    def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+class LocalWhisperClient:
+    def __init__(self, model_size="base"):
+        self.model = whisper.load_model(model_size)
     
-    async def transcribe_audio(self, audio_data: bytes) -> str:
+    async def transcribe_audio(self, audio_file_path: str) -> str:
         try:
-            response = await self.client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_data,
-                response_format="text"
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None, 
+                lambda: self.model.transcribe(audio_file_path)
             )
-            return response
+            return result["text"].strip()
         except Exception as e:
-            logger.error(f"Whisper API error: {e}")
+            logger.error(f"Local Whisper error: {e}")
             raise APIError("Speech recognition failed")
 ```
 
-## ElevenLabs TTS Patterns
+## Local TTS Patterns
 ```python
-# Implement voice caching for repeated phrases
-class VoiceCache:
+# Use pyttsx3 for text-to-speech
+import pyttsx3
+import asyncio
+
+class LocalTTSClient:
     def __init__(self):
+        self.engine = pyttsx3.init()
         self.cache = {}
     
-    async def get_or_generate_audio(self, text: str) -> bytes:
-        cache_key = hashlib.md5(text.encode()).hexdigest()
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-        
-        audio = await self.elevenlabs_client.generate(text)
-        self.cache[cache_key] = audio
-        return audio
+    async def speak_text(self, text: str) -> bool:
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: self._speak_sync(text)
+            )
+            return True
+        except Exception as e:
+            logger.error(f"TTS error: {e}")
+            return False
+    
+    def _speak_sync(self, text: str):
+        self.engine.say(text)
+        self.engine.runAndWait()
 ```
 
-## AWS Integration Patterns
+## Local Storage Patterns
 ```python
-# Use boto3 with proper error handling and retries
-import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
+# Use SQLite for local data storage
+import aiosqlite
+import json
+from datetime import datetime
 
-class AWSClient:
-    def __init__(self):
-        self.s3 = boto3.client('s3')
-        self.dynamodb = boto3.resource('dynamodb')
+class LocalStorageClient:
+    def __init__(self, db_path="./data/heimdall.db"):
+        self.db_path = db_path
     
-    async def upload_screenshot(self, image_data: bytes, user_id: str) -> str:
+    async def save_screenshot_metadata(self, filepath: str, analysis_data: dict) -> int:
         try:
-            key = f"screenshots/{user_id}/{datetime.now().isoformat()}.png"
-            self.s3.put_object(
-                Bucket=os.getenv('S3_BUCKET_NAME'),
-                Key=key,
-                Body=image_data,
-                ServerSideEncryption='AES256'
-            )
-            return key
-        except ClientError as e:
-            logger.error(f"S3 upload failed: {e}")
-            raise StorageError("Failed to save screenshot")
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute("""
+                    INSERT INTO screenshots (timestamp, filepath, analysis_data)
+                    VALUES (?, ?, ?)
+                """, (
+                    datetime.now().isoformat(),
+                    filepath,
+                    json.dumps(analysis_data)
+                ))
+                await db.commit()
+                return cursor.lastrowid
+        except Exception as e:
+            logger.error(f"Local storage error: {e}")
+            raise StorageError("Failed to save screenshot metadata")
 ```
 
 ## Error Handling Standards

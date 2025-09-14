@@ -1,5 +1,5 @@
 """
-Configuration management for Heimdall.
+Configuration management for Heimdall - Free API Version.
 Loads environment variables and provides typed configuration access.
 """
 
@@ -15,27 +15,26 @@ env_path = Path(__file__).parent.parent.parent / '.env'
 load_dotenv(env_path)
 
 
-class OpenAIConfig(BaseSettings):
-    """OpenAI API configuration."""
-    api_key: str = Field(..., env='OPENAI_API_KEY')
-    model: str = Field('gpt-4o', env='OPENAI_MODEL')
-    whisper_model: str = Field('whisper-1', env='WHISPER_MODEL')
+class LocalAIConfig(BaseSettings):
+    """Local AI configuration (Ollama + Whisper)."""
+    ollama_host: str = Field('http://localhost:11434', env='OLLAMA_HOST')
+    ollama_model: str = Field('llama3.2:3b', env='OLLAMA_MODEL')
+    whisper_model: str = Field('base', env='WHISPER_MODEL')
 
 
-class ElevenLabsConfig(BaseSettings):
-    """ElevenLabs TTS configuration."""
-    api_key: str = Field(..., env='ELEVENLABS_API_KEY')
-    voice_id: Optional[str] = Field(None, env='ELEVENLABS_VOICE_ID')
-    voice_model: str = Field('eleven_monolingual_v1', env='VOICE_MODEL')
+class LocalTTSConfig(BaseSettings):
+    """Local TTS configuration (pyttsx3)."""
+    engine: str = Field('pyttsx3', env='TTS_ENGINE')
+    voice_index: int = Field(0, env='TTS_VOICE_INDEX')
+    rate: int = Field(200, env='TTS_RATE')
+    volume: float = Field(0.9, env='TTS_VOLUME')
 
 
-class AWSConfig(BaseSettings):
-    """AWS services configuration."""
-    access_key_id: str = Field(..., env='AWS_ACCESS_KEY_ID')
-    secret_access_key: str = Field(..., env='AWS_SECRET_ACCESS_KEY')
-    region: str = Field('us-east-1', env='AWS_REGION')
-    s3_bucket_name: str = Field('heimdall-screenshots', env='S3_BUCKET_NAME')
-    dynamodb_table_name: str = Field('heimdall-logs', env='DYNAMODB_TABLE_NAME')
+class LocalStorageConfig(BaseSettings):
+    """Local storage configuration (SQLite + filesystem)."""
+    database_path: str = Field('./data/heimdall.db', env='DATABASE_PATH')
+    screenshots_path: str = Field('./data/screenshots', env='SCREENSHOTS_PATH')
+    logs_path: str = Field('./data/logs', env='LOGS_PATH')
 
 
 class AudioConfig(BaseSettings):
@@ -77,35 +76,40 @@ class AppConfig(BaseSettings):
 
 
 class HeimdallConfig:
-    """Central configuration manager for Heimdall."""
+    """Central configuration manager for Heimdall - Free API Version."""
     
     def __init__(self):
-        self.openai = OpenAIConfig()
-        self.elevenlabs = ElevenLabsConfig()
-        self.aws = AWSConfig()
+        self.local_ai = LocalAIConfig()
+        self.local_tts = LocalTTSConfig()
+        self.local_storage = LocalStorageConfig()
         self.audio = AudioConfig()
         self.screen_analysis = ScreenAnalysisConfig()
         self.performance = PerformanceConfig()
         self.privacy = PrivacyConfig()
         self.app = AppConfig()
     
-    def validate_required_keys(self) -> list[str]:
-        """Validate that all required API keys are present."""
-        missing_keys = []
+    def validate_setup(self) -> list[str]:
+        """Validate that local services are accessible."""
+        issues = []
         
-        if not self.openai.api_key:
-            missing_keys.append('OPENAI_API_KEY')
+        # Check if Ollama is accessible
+        try:
+            import requests
+            response = requests.get(f"{self.local_ai.ollama_host}/api/tags", timeout=5)
+            if response.status_code != 200:
+                issues.append("Ollama server not accessible - run 'ollama serve'")
+        except Exception:
+            issues.append("Ollama not installed or not running - visit https://ollama.ai/")
         
-        if not self.elevenlabs.api_key:
-            missing_keys.append('ELEVENLABS_API_KEY')
+        # Check if required directories exist
+        for path in [self.local_storage.screenshots_path, self.local_storage.logs_path]:
+            if not os.path.exists(path):
+                try:
+                    os.makedirs(path, exist_ok=True)
+                except Exception:
+                    issues.append(f"Cannot create directory: {path}")
         
-        if not self.aws.access_key_id:
-            missing_keys.append('AWS_ACCESS_KEY_ID')
-        
-        if not self.aws.secret_access_key:
-            missing_keys.append('AWS_SECRET_ACCESS_KEY')
-        
-        return missing_keys
+        return issues
     
     def is_development_mode(self) -> bool:
         """Check if running in development mode."""
@@ -130,11 +134,14 @@ def get_config() -> HeimdallConfig:
 
 
 def validate_environment() -> None:
-    """Validate environment configuration and raise errors for missing keys."""
-    missing_keys = config.validate_required_keys()
+    """Validate environment configuration and check local services."""
+    issues = config.validate_setup()
     
-    if missing_keys and not config.app.mock_apis:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing_keys)}. "
-            f"Please check your .env file or set MOCK_APIS=true for development."
-        )
+    if issues:
+        print("⚠️  Setup issues found:")
+        for issue in issues:
+            print(f"   - {issue}")
+        
+        if not config.app.test_mode:
+            print("\n💡 Run 'python test_setup.py' to diagnose issues")
+            print("💡 Run 'python setup.py' to fix setup problems")

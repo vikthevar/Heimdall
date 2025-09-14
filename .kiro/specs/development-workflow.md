@@ -57,7 +57,7 @@ Spec Creation → Design Review → Implementation → Testing → Integration
 - **Documentation Sync**: Keep docs updated with code changes
 
 ### MCP Servers
-- **AWS Tools**: Direct cloud resource management
+- **Local Tools**: Local development utilities
 - **Git Integration**: Advanced version control operations
 - **Python Tools**: Package management and execution
 - **Filesystem**: Enhanced file operations
@@ -97,7 +97,7 @@ Spec Creation → Design Review → Implementation → Testing → Integration
 ## Tools & Resources
 - **Kiro IDE**: Primary development environment
 - **GitHub**: Version control and collaboration
-- **AWS**: Cloud infrastructure and services
+- **Local Infrastructure**: SQLite, local file storage
 - **Testing Frameworks**: pytest, accessibility testing tools
 
 ## Best Practices

@@ -73,11 +73,10 @@ temp_audio/
 temp_screenshots/
 *.wav
 *.mp3
-*.png
-*.jpg
-*.jpeg
 recordings/
-screenshots/
+
+# Local data directory (contains screenshots, logs, database)
+data/
 
 # Logs
 *.log

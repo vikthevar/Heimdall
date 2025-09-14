@@ -1,91 +1,116 @@
-# Heimdall - AI Voice Assistant for Visually Impaired Users
+# Heimdall - FREE AI Voice Assistant for Screen Control
 
 <div align="center">
-  <img src="assets/heimdall-logo.png" alt="Heimdall Logo" width="200"/>
-  <p><em>Your AI companion for computer navigation and control</em></p>
+  <p><em>🆓 100% Free AI companion for computer navigation and control</em></p>
+  <p><strong>No API keys required • No cloud dependencies • Complete privacy</strong></p>
 </div>
 
 ## 🎯 Overview
 
-Heimdall is an intelligent voice assistant designed to help visually impaired and non-technical users navigate and control their computer screens through natural voice commands. The system captures screenshots, analyzes screen content using OCR and computer vision, and executes user requests through voice-controlled automation.
+Heimdall is an intelligent voice assistant that uses **completely free APIs and local processing** to help users navigate and control their computer screens through natural voice commands. Everything runs locally on your machine for maximum privacy and zero ongoing costs.
 
 ## ✨ Features
 
-- **Voice Command Recognition**: Natural language processing for screen navigation
-- **Screen Analysis**: OCR text extraction and UI element detection
-- **Intelligent Automation**: Mouse and keyboard control based on voice commands
-- **Voice Feedback**: Clear, friendly audio responses
-- **Cloud Storage**: Secure AWS integration for data and preferences
-- **Accessibility Focused**: Designed specifically for visually impaired users
+- **🆓 100% Free**: No API keys, subscriptions, or cloud services required
+- **🔒 Privacy First**: All processing happens locally on your machine
+- **🎤 Voice Recognition**: Local Whisper for speech-to-text
+- **🧠 AI Intelligence**: Local Ollama LLM for command understanding
+- **🔊 Text-to-Speech**: Built-in system TTS for voice feedback
+- **👁️ Screen Analysis**: Free OCR and computer vision
+- **🖱️ Smart Automation**: Mouse and keyboard control
+- **♿ Accessibility Focused**: Designed for visually impaired users
 
-## 🏗️ Architecture
+## 🏗️ Free Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Voice Input   │───▶│  Intent Parser  │───▶│ Screen Controller│
-│   (Whisper)     │    │   (GPT-4o)      │    │  (PyAutoGUI)    │
+│ (Local Whisper) │    │ (Local Ollama)  │    │  (PyAutoGUI)    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Voice Output    │    │ Screen Analyzer │    │   AWS Storage   │
-│ (ElevenLabs)    │    │ (OCR + YOLOv8)  │    │ (S3 + DynamoDB) │
+│ Voice Output    │    │ Screen Analyzer │    │ Local Storage   │
+│   (pyttsx3)     │    │ (Tesseract OCR) │    │   (SQLite)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (100% Free Setup)
 
 ### Prerequisites
 
 - Python 3.9 or higher
 - macOS, Windows, or Linux
 - Microphone and speakers
-- AWS account (for cloud features)
+- **No API keys or cloud accounts needed!**
 
-### Installation
+### Automated Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/kushallg/Heimdall.git
    cd Heimdall
    ```
 
-2. **Create virtual environment**
+2. **Run the setup script**
+
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python setup.py
    ```
 
-3. **Install dependencies**
+   This will automatically:
+
+   - Install system dependencies (Tesseract OCR)
+   - Create Python virtual environment
+   - Install all Python packages
+   - Set up Ollama (local LLM)
+   - Create necessary directories and config files
+
+3. **Start Ollama and download the model**
+
    ```bash
+   # Start Ollama server (in a separate terminal)
+   ollama serve
+
+   # Download the free Llama model (3B parameters)
+   ollama pull llama3.2:3b
+   ```
+
+4. **Run Heimdall**
+   ```bash
+   python main.py
+   ```
+
+### Manual Installation (if automated setup fails)
+
+1. **Install system dependencies**
+
+   ```bash
+   # macOS
+   brew install tesseract ollama
+
+   # Ubuntu/Debian
+   sudo apt-get install tesseract-ocr portaudio19-dev
+   curl -fsSL https://ollama.ai/install.sh | sh
+
+   # Windows
+   # Download Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
+   # Download Ollama: https://ollama.ai/download/windows
+   ```
+
+2. **Create virtual environment and install Python packages**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-4. **Install system dependencies**
+3. **Set up local AI model**
    ```bash
-   # macOS
-   brew install tesseract
-   
-   # Ubuntu/Debian
-   sudo apt-get install tesseract-ocr
-   
-   # Windows
-   # Download and install Tesseract from GitHub releases
-   ```
-
-5. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual API keys:
-   # - OPENAI_API_KEY: Your OpenAI API key
-   # - ELEVENLABS_API_KEY: Your ElevenLabs API key  
-   # - AWS_ACCESS_KEY_ID: Your AWS access key
-   # - AWS_SECRET_ACCESS_KEY: Your AWS secret key
-   ```
-
-6. **Run Heimdall**
-   ```bash
-   python main.py
+   ollama serve  # Start Ollama
+   ollama pull llama3.2:3b  # Download free model
    ```
 
 ## 🎮 Usage Examples
@@ -105,30 +130,38 @@ Heimdall is an intelligent voice assistant designed to help visually impaired an
 - **File operations**: "Save this document"
 - **Application control**: "Close the browser window"
 
-## ⚙️ Configuration
+## ⚙️ Configuration (All Free!)
 
 ### Environment Variables
 
-Create a `.env` file with the following variables:
+The `.env` file is automatically created with free settings:
 
 ```env
-# OpenAI API
-OPENAI_API_KEY=your_openai_key
+# Local AI Configuration (FREE)
+OLLAMA_MODEL=llama3.2:3b
+OLLAMA_HOST=http://localhost:11434
+WHISPER_MODEL=base  # Options: tiny, base, small, medium, large
 
-# ElevenLabs API
-ELEVENLABS_API_KEY=your_elevenlabs_key
+# Local TTS Configuration (FREE)
+TTS_ENGINE=pyttsx3
+TTS_VOICE_INDEX=0  # System voice to use
+TTS_RATE=200  # Words per minute
+TTS_VOLUME=0.9
 
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-AWS_REGION=us-east-1
-S3_BUCKET_NAME=heimdall-screenshots
-DYNAMODB_TABLE_NAME=heimdall-logs
-
-# Application Settings
-SCREENSHOT_INTERVAL=30
-VOICE_MODEL=eleven_monolingual_v1
+# Local Storage (FREE)
+DATABASE_PATH=./data/heimdall.db
+SCREENSHOTS_PATH=./data/screenshots
+LOGS_PATH=./data/logs
 ```
+
+### Free Components Used
+
+- **Speech Recognition**: OpenAI Whisper (runs locally)
+- **Language Model**: Llama 3.2 via Ollama (runs locally)
+- **Text-to-Speech**: pyttsx3 (uses system TTS)
+- **OCR**: Tesseract (completely free)
+- **Database**: SQLite (built into Python)
+- **Storage**: Local filesystem
 
 ## 🛠️ Development
 
@@ -177,10 +210,12 @@ pytest tests/
 
 ## 🔐 Privacy & Security
 
-- All audio and image data is encrypted before storage
-- API calls are rate-limited and anonymized
-- User preferences are stored locally by default
-- Comprehensive logging for transparency and debugging
+- **100% Local Processing**: No data ever leaves your machine
+- **No Cloud Dependencies**: Everything runs offline
+- **No API Keys Required**: No risk of key exposure or billing
+- **Local Storage Only**: SQLite database and local files
+- **Open Source**: Full transparency of all code
+- **No Telemetry**: No usage tracking or analytics
 
 ## 📄 License
 
@@ -194,13 +229,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- OpenAI for Whisper and GPT models
-- ElevenLabs for voice synthesis
-- AWS for cloud infrastructure
-- The open-source community for OCR and computer vision tools
+- **OpenAI** for the free Whisper model
+- **Meta** for the free Llama models
+- **Ollama** for making local LLMs accessible
+- **Tesseract** team for free OCR
+- **pyttsx3** developers for free TTS
+- The entire **open-source community** for making this possible
+
+## 💰 Cost Comparison
+
+| Service        | Paid Alternative   | Heimdall (Free) | Monthly Savings    |
+| -------------- | ------------------ | --------------- | ------------------ |
+| Speech-to-Text | OpenAI Whisper API | Local Whisper   | $10-50+            |
+| Language Model | GPT-4 API          | Local Llama     | $20-200+           |
+| Text-to-Speech | ElevenLabs         | System TTS      | $5-25+             |
+| Cloud Storage  | AWS S3/DynamoDB    | Local SQLite    | $5-20+             |
+| **Total**      |                    |                 | **$40-295+/month** |
 
 ---
 
 <div align="center">
   <p>Made with ❤️ for accessibility and inclusion</p>
-</div> 
+</div>

@@ -6,7 +6,7 @@ Design and implement a robust voice processing pipeline that converts user speec
 ## Requirements
 
 ### Functional Requirements
-- **Speech-to-Text**: Convert audio input to text using OpenAI Whisper
+- **Speech-to-Text**: Convert audio input to text using Local Whisper
 - **Intent Recognition**: Parse natural language commands into structured actions
 - **Context Awareness**: Maintain conversation state and screen context
 - **Error Handling**: Graceful handling of unclear or invalid commands
@@ -24,7 +24,7 @@ Design and implement a robust voice processing pipeline that converts user speec
 ```
 Audio Input → Voice Handler → Intent Parser → Action Executor → Voice Output
      ↓              ↓              ↓              ↓              ↓
-  Whisper API   Context Store   GPT-4o API   Screen Controller  ElevenLabs
+Local Whisper   Context Store   Local Ollama   Screen Controller  pyttsx3
 ```
 
 ### Data Models
@@ -66,7 +66,7 @@ class IntentParser:
 
 ### Phase 2: Intent Recognition
 - [ ] Design command grammar and patterns
-- [ ] Integrate GPT-4o for natural language understanding
+- [ ] Integrate Local Ollama for natural language understanding
 - [ ] Implement context management system
 - [ ] Add confidence scoring for commands
 
@@ -103,9 +103,9 @@ class IntentParser:
 - Robust error handling with helpful feedback
 
 ## Dependencies
-- OpenAI Whisper API
-- OpenAI GPT-4o API
-- ElevenLabs TTS API
+- Local Whisper (openai-whisper package)
+- Local Ollama (ollama package)
+- pyttsx3 TTS (local system TTS)
 - pyaudio for audio capture
 - Screen analysis components
 

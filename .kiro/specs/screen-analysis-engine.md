@@ -24,7 +24,7 @@ Develop an intelligent screen analysis system that combines OCR, computer vision
 ```
 Screenshot → Image Preprocessor → OCR Engine → UI Detector → Content Analyzer
      ↓              ↓               ↓           ↓             ↓
-  PyAutoGUI    OpenCV/Pillow   Tesseract   YOLOv8/CV2   GPT-4o Vision
+  PyAutoGUI    OpenCV/Pillow   Tesseract   OpenCV/CV2   Local Analysis
 ```
 
 ### Data Models
@@ -83,7 +83,7 @@ class UIDetector:
 - [ ] Create element classification system
 
 ### Phase 3: Intelligent Analysis
-- [ ] Integrate GPT-4o Vision for complex analysis
+- [ ] Implement local computer vision for complex analysis
 - [ ] Implement spatial relationship mapping
 - [ ] Add content categorization
 - [ ] Create interaction possibility scoring
@@ -125,7 +125,7 @@ class UIDetector:
 - Tesseract OCR engine
 - OpenCV for image processing
 - YOLOv8 for object detection
-- GPT-4o Vision API
+- Local computer vision algorithms
 - Pillow for image manipulation
 
 ## Risks & Mitigations
