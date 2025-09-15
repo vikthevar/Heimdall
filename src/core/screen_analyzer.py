@@ -9,6 +9,26 @@ import numpy as np
 from loguru import logger
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
+import platform
+import os
+
+# Configure Tesseract path for Windows
+if platform.system() == "Windows":
+    # Common Tesseract installation paths on Windows
+    tesseract_paths = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        r"C:\tools\tesseract\tesseract.exe",
+        r"C:\tesseract\tesseract.exe"
+    ]
+    
+    for path in tesseract_paths:
+        if os.path.exists(path):
+            pytesseract.pytesseract.tesseract_cmd = path
+            logger.info(f"✅ Tesseract configured at: {path}")
+            break
+    else:
+        logger.warning("⚠️ Tesseract not found in common locations")
 import pyautogui
 
 # macOS window enumeration (optional)

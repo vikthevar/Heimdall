@@ -37,11 +37,30 @@ User request: """
         
         full_prompt = system_prompt + prompt
         
-        # Call Ollama using subprocess
+        # Call Ollama using subprocess with full path on Windows
+        import platform
+        import os
+        
+        ollama_cmd = "ollama"
+        if platform.system() == "Windows":
+            # Try common Ollama installation paths
+            ollama_paths = [
+                os.path.expanduser(r"~\AppData\Local\Programs\Ollama\ollama.exe"),
+                r"C:\Program Files\Ollama\ollama.exe",
+                r"C:\Program Files (x86)\Ollama\ollama.exe"
+            ]
+            
+            for path in ollama_paths:
+                if os.path.exists(path):
+                    ollama_cmd = path
+                    break
+        
         result = subprocess.run(
-            ["ollama", "run", model, full_prompt],
+            [ollama_cmd, "run", model, full_prompt],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='ignore',  # Ignore encoding errors
             timeout=30  # 30 second timeout
         )
         
