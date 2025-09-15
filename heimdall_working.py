@@ -91,7 +91,7 @@ def run_pyqt6():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
-                # Process the message
+                # Process the message using the real AI backend
                 result = loop.run_until_complete(
                     self.ai_brain.process_message(self.message, simulate_actions=True)
                 )
@@ -137,7 +137,7 @@ def run_pyqt6():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
-                # Record voice command using voice handler
+                # Record voice command using real voice handler
                 text = loop.run_until_complete(
                     self.voice_handler.listen_for_command(duration=5)
                 )
@@ -174,17 +174,12 @@ def run_pyqt6():
         def run(self):
             """Capture and analyze screen in background with comprehensive error handling"""
             try:
-                if not self.screen_analyzer:
-                    self.error_occurred.emit("Screen analyzer not available")
-                    return
-                
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
-                # Capture and read screen using screen analyzer
-                content = loop.run_until_complete(
-                    self.screen_analyzer.capture_and_read()
-                )
+                # Use the real screen analyzer function
+                from core.screen_analyzer import capture_fullscreen_and_ocr
+                content = capture_fullscreen_and_ocr()
                 
                 self.screen_result.emit(content)
                 
@@ -216,24 +211,16 @@ def run_pyqt6():
         def run(self):
             """Execute screen command in background with comprehensive error handling"""
             try:
-                if not self.screen_controller:
-                    self.error_occurred.emit("Screen controller not available")
-                    return
+                # Use the real screen controller functions
+                from core.screen_controller import execute_intent, render_plan
                 
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                # Execute command using screen controller
-                if callable(self.screen_controller):
-                    # Function-based controller
-                    result = loop.run_until_complete(
-                        self.screen_controller(self.command)
-                    )
+                # For now, simulate actions by showing the plan
+                if isinstance(self.command, dict):
+                    # Command is an intent dictionary
+                    plan = render_plan(self.command)
+                    result = f"🎯 **Action Plan:**\n{plan}\n\n⚠️ *Simulation mode - action not executed*\n\n💡 *To enable real automation, uncomment pyautogui calls in screen_controller.py*"
                 else:
-                    # Object-based controller
-                    result = loop.run_until_complete(
-                        self.screen_controller.execute(self.command)
-                    )
+                    result = f"📋 Command received: {self.command}\n⚠️ *Simulation mode active*"
                 
                 self.execution_result.emit(result)
                 
@@ -247,10 +234,7 @@ def run_pyqt6():
                 logger.error(f"Command execution error: {e}")
                 self.error_occurred.emit(f"Command execution failed: {str(e)}")
             finally:
-                try:
-                    loop.close()
-                except:
-                    pass
+                pass
     
     class HeimdallWindow(QMainWindow):
         def __init__(self):
@@ -909,6 +893,12 @@ def run_pyqt6():
             try:
                 from core.voice_handler import VoiceHandler
                 self.voice_handler = VoiceHandler()
+                # Initialize the voice handler asynchronously
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(self.voice_handler.initialize())
+                loop.close()
                 logger.info("✅ Voice handler initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize voice handler: {e}")
@@ -1045,13 +1035,30 @@ def run_pyqt6():
                 self.reset_voice_button()
         
         def handle_voice_result(self, text):
-            """Handle voice transcription result"""
+            """Handle voice transcription result and send to AI"""
             # Reset voice button
             self.reset_voice_button()
             
-            # Add transcribed text to input and send
+            # Display transcribed text in chat
+            voice_html = f"""
+            <div style='text-align: left; margin: 15px 0;'>
+                <div style='background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f59e0b, stop:1 #d97706); 
+                           color: white; padding: 12px 16px; 
+                           border-radius: 15px; border: 1px solid #f59e0b; 
+                           display: inline-block; max-width: 70%; word-wrap: break-word;'>
+                    🎤 <strong>Voice Input:</strong><br><br>
+                    "{self.escape_html(text)}"
+                </div>
+                <div style='color: #666; font-size: 11px; margin-top: 5px;'>
+                    Speech Recognition • Just now
+                </div>
+            </div>
+            """
+            self.chat.insertHtml(voice_html)
+            self.scroll_to_bottom()
+            
+            # Set transcribed text in input field and send to AI
             self.input_field.setText(text)
-            self.add_system_message(f"🎤 Heard: \"{text}\"")
             self.send_message()
         
         def handle_voice_error(self, error_msg):
@@ -1114,30 +1121,37 @@ def run_pyqt6():
                 self.reset_screen_button()
         
         def handle_screen_result(self, content):
-            """Handle screen reading result"""
+            """Handle screen reading result with purple OCR bubble"""
             # Reset screen button
             self.reset_screen_button()
             
-            # Display screen content
+            # Display screen content in purple bubble
             if content and not content.startswith("❌"):
                 # Truncate very long content
                 if len(content) > 1000:
                     content = content[:1000] + "...\n\n(Content truncated for display)"
                 
+                # Purple bubble for OCR results
                 screen_html = f"""
                 <div style='text-align: left; margin: 15px 0;'>
-                    <div style='background: #1a3a1a; color: #10b981; padding: 12px 16px; 
-                               border-radius: 15px; border: 1px solid #10b981; 
+                    <div style='background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8b5cf6, stop:1 #a855f7); 
+                               color: white; padding: 12px 16px; 
+                               border-radius: 15px; border: 1px solid #8b5cf6; 
                                display: inline-block; max-width: 70%; word-wrap: break-word;'>
-                        📸 <strong>Screen Content:</strong><br><br>
+                        📸 <strong>Screen OCR Result:</strong><br><br>
                         {self.escape_html(content)}
                     </div>
                     <div style='color: #666; font-size: 11px; margin-top: 5px;'>
-                        Screen Reader • Just now
+                        OCR Scanner • Just now
                     </div>
                 </div>
                 """
                 self.chat.insertHtml(screen_html)
+                
+                # Also update the screen view if we're on that tab
+                if hasattr(self, 'screen_content'):
+                    self.screen_content.setPlainText(content)
+                    
             else:
                 self.show_error_message(f"Screen reading failed: {content}")
             
@@ -1352,7 +1366,7 @@ def run_pyqt6():
             self.scroll_to_bottom()
         
         def handle_ai_response(self, result):
-            """Handle AI response from worker thread"""
+            """Handle AI response from worker thread with action execution"""
             try:
                 # Remove processing message by replacing chat content
                 current_html = self.chat.toHtml()
@@ -1382,6 +1396,13 @@ def run_pyqt6():
                 </div>
                 """
                 self.chat.insertHtml(ai_html)
+                
+                # Check if AI response includes actions to execute
+                if intent.get('type') == 'automation' and not executed:
+                    self.execute_automation_action(intent)
+                
+                # Add TTS output for AI response
+                self.speak_response(reply)
                 
             except Exception as e:
                 logger.error(f"Error handling AI response: {e}")
@@ -1504,6 +1525,106 @@ def run_pyqt6():
                     self.error_bubble = None
             except Exception as e:
                 logger.error(f"Failed to hide error bubble: {e}")
+        
+        def execute_automation_action(self, intent):
+            """Execute automation action from AI response"""
+            try:
+                if not intent or intent.get('type') != 'automation':
+                    return
+                
+                # Start command executor worker
+                if self.current_command_worker and self.current_command_worker.isRunning():
+                    self.current_command_worker.terminate()
+                    self.current_command_worker.wait()
+                
+                self.current_command_worker = CommandExecutorThread(None, intent, self)
+                self.current_command_worker.execution_result.connect(self.handle_execution_result)
+                self.current_command_worker.error_occurred.connect(self.handle_execution_error)
+                self.current_command_worker.start()
+                
+            except Exception as e:
+                logger.error(f"Failed to execute automation action: {e}")
+                self.show_error_bubble(f"Automation execution failed: {str(e)}")
+        
+        def handle_execution_result(self, result):
+            """Handle automation execution result"""
+            try:
+                # Show execution result in a green confirmation bubble
+                execution_html = f"""
+                <div style='text-align: left; margin: 15px 0;'>
+                    <div style='background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #059669); 
+                               color: white; padding: 12px 16px; 
+                               border-radius: 15px; border: 1px solid #10b981; 
+                               display: inline-block; max-width: 70%; word-wrap: break-word;'>
+                        🤖 <strong>Automation Result:</strong><br><br>
+                        {self.escape_html(result)}
+                    </div>
+                    <div style='color: #666; font-size: 11px; margin-top: 5px;'>
+                        Automation Engine • Just now
+                    </div>
+                </div>
+                """
+                self.chat.insertHtml(execution_html)
+                self.scroll_to_bottom()
+                
+            except Exception as e:
+                logger.error(f"Error handling execution result: {e}")
+        
+        def handle_execution_error(self, error_msg):
+            """Handle automation execution error"""
+            self.show_error_bubble(f"Automation failed: {error_msg}")
+            self.show_error_message(f"Automation execution failed: {error_msg}")
+        
+        def speak_response(self, text):
+            """Speak AI response using TTS"""
+            try:
+                # Clean text for TTS (remove markdown and special characters)
+                clean_text = self.clean_text_for_tts(text)
+                
+                if len(clean_text.strip()) > 0:
+                    # Start TTS in background thread to avoid blocking GUI
+                    import threading
+                    tts_thread = threading.Thread(target=self._speak_text_sync, args=(clean_text,))
+                    tts_thread.daemon = True
+                    tts_thread.start()
+                    
+            except Exception as e:
+                logger.error(f"TTS error: {e}")
+        
+        def _speak_text_sync(self, text):
+            """Synchronous TTS function to run in background thread"""
+            try:
+                import pyttsx3
+                engine = pyttsx3.init()
+                engine.setProperty('rate', 150)  # Speed
+                engine.setProperty('volume', 0.8)  # Volume
+                engine.say(text)
+                engine.runAndWait()
+            except Exception as e:
+                logger.error(f"TTS synthesis error: {e}")
+        
+        def clean_text_for_tts(self, text):
+            """Clean text for TTS by removing markdown and special formatting"""
+            import re
+            
+            # Remove markdown formatting
+            text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Bold
+            text = re.sub(r'\*(.*?)\*', r'\1', text)      # Italic
+            text = re.sub(r'`(.*?)`', r'\1', text)        # Code
+            text = re.sub(r'#{1,6}\s*(.*)', r'\1', text)  # Headers
+            text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)  # Links
+            
+            # Remove special symbols that don't read well
+            text = re.sub(r'[📸🤖⚠️✅❌💡🎯📋]', '', text)
+            
+            # Clean up extra whitespace
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            # Limit length for TTS
+            if len(text) > 200:
+                text = text[:200] + "..."
+            
+            return text
         
         def scroll_to_bottom(self):
             """Scroll chat to bottom"""
