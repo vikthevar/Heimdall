@@ -387,64 +387,86 @@ def calculate_text_similarity(text: str, key_words: List[str]) -> float:
     return matches / len(key_words)
 
 def _execute_minimize(intent: Dict[str, Any]) -> str:
-    """Execute window minimize action"""
+    """Execute window minimize action with window selection"""
     try:
         window_title = intent.get('window', 'current')
         
+        # Handle Heimdall-specific commands
+        if window_title in ['heimdall', 'this', 'this app']:
+            # Minimize Heimdall itself
+            pyautogui.hotkey('alt', 'f9')  # Safe minimize shortcut
+            return f"✅ Minimized Heimdall AI Assistant"
+        
+        # Get list of available windows
+        available_windows = get_window_list()
+        
         if window_title == 'current':
-            # Find and click minimize button
-            minimize_pos = find_minimize_button(np.array(pyautogui.screenshot()))
-            if minimize_pos:
-                pyautogui.click(minimize_pos[0], minimize_pos[1])
-                return f"✅ Minimized current window"
-            else:
-                # Fallback: use keyboard shortcut
-                pyautogui.hotkey('alt', 'f9')  # Windows/Linux
-                return f"✅ Minimized window using keyboard shortcut"
+            window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+            return f"🔍 Available windows to minimize:\n" + "\n".join([f"• {w}" for w in window_titles]) + f"\n\nPlease specify which window to minimize (e.g., 'minimize notepad')"
         else:
-            return minimize_window_by_title(window_title)
+            # Try to minimize specific window
+            result = minimize_window_by_title(window_title)
+            if result and not result.startswith("❌"):
+                return result
+            else:
+                window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+                return f"❌ Could not find window: {window_title}\n\nAvailable windows:\n" + "\n".join([f"• {w}" for w in window_titles])
     
     except Exception as e:
         return f"❌ Minimize failed: {str(e)}"
 
 def _execute_close(intent: Dict[str, Any]) -> str:
-    """Execute window close action"""
+    """Execute window close action with safety checks"""
     try:
         window_title = intent.get('window', 'current')
         
+        # Safety check: Don't close Heimdall or Kiro
+        if window_title in ['current', 'this', 'heimdall', 'kiro']:
+            return f"🛡️ Safety check: Cannot close Heimdall AI Assistant. Use the X button if you really want to exit."
+        
+        # Get list of available windows for user to choose from
+        available_windows = get_window_list()
+        
         if window_title == 'current':
-            # Find and click close button
-            close_pos = find_close_button(np.array(pyautogui.screenshot()))
-            if close_pos:
-                pyautogui.click(close_pos[0], close_pos[1])
-                return f"✅ Closed current window"
-            else:
-                # Fallback: use keyboard shortcut
-                pyautogui.hotkey('alt', 'f4')  # Windows/Linux
-                return f"✅ Closed window using keyboard shortcut"
+            window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+            return f"🔍 Available windows to close:\n" + "\n".join([f"• {w}" for w in window_titles]) + f"\n\nPlease specify which window to close (e.g., 'close notepad')"
         else:
-            return close_window_by_title(window_title)
+            # Try to close specific window
+            result = close_window_by_title(window_title)
+            if result and not result.startswith("❌"):
+                return result
+            else:
+                window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+                return f"❌ Could not find window: {window_title}\n\nAvailable windows:\n" + "\n".join([f"• {w}" for w in window_titles])
     
     except Exception as e:
         return f"❌ Close failed: {str(e)}"
 
 def _execute_maximize(intent: Dict[str, Any]) -> str:
-    """Execute window maximize action"""
+    """Execute window maximize action with window selection"""
     try:
         window_title = intent.get('window', 'current')
         
+        # Handle Heimdall-specific commands
+        if window_title in ['heimdall', 'this', 'this app']:
+            # Maximize Heimdall itself
+            pyautogui.hotkey('win', 'up')  # Windows maximize shortcut
+            return f"✅ Maximized Heimdall AI Assistant"
+        
+        # Get list of available windows
+        available_windows = get_window_list()
+        
         if window_title == 'current':
-            # Find and click maximize button
-            maximize_pos = find_maximize_button(np.array(pyautogui.screenshot()))
-            if maximize_pos:
-                pyautogui.click(maximize_pos[0], maximize_pos[1])
-                return f"✅ Maximized current window"
-            else:
-                # Fallback: use keyboard shortcut
-                pyautogui.hotkey('win', 'up')  # Windows
-                return f"✅ Maximized window using keyboard shortcut"
+            window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+            return f"🔍 Available windows to maximize:\n" + "\n".join([f"• {w}" for w in window_titles]) + f"\n\nPlease specify which window to maximize (e.g., 'maximize notepad')"
         else:
-            return maximize_window_by_title(window_title)
+            # Try to maximize specific window
+            result = maximize_window_by_title(window_title)
+            if result and not result.startswith("❌"):
+                return result
+            else:
+                window_titles = [w.get('title', 'Unknown') for w in available_windows[:5]]
+                return f"❌ Could not find window: {window_title}\n\nAvailable windows:\n" + "\n".join([f"• {w}" for w in window_titles])
     
     except Exception as e:
         return f"❌ Maximize failed: {str(e)}"

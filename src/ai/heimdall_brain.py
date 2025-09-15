@@ -117,6 +117,10 @@ class HeimdallBrain:
             reply = llm_result.get('reply', 'No response generated')
             intent = llm_result.get('intent', {'type': 'unknown'})
             
+            # Ensure reply is never None
+            if reply is None:
+                reply = 'No response generated'
+            
             # Step 2: Save messages to database
             try:
                 save_message(text, reply, intent)

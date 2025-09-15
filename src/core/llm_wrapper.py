@@ -114,8 +114,32 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
     Returns:
         Intent dictionary
     """
+    # Volume control intents
+    if any(word in text_lower for word in ['volume', 'sound', 'audio']):
+        if any(word in text_lower for word in ['up', 'increase', 'louder', 'higher']):
+            return {
+                'type': 'automation',
+                'action': 'volume',
+                'volume_action': 'increase',
+                'confidence': 0.9
+            }
+        elif any(word in text_lower for word in ['down', 'decrease', 'lower', 'quieter']):
+            return {
+                'type': 'automation',
+                'action': 'volume',
+                'volume_action': 'decrease',
+                'confidence': 0.9
+            }
+        elif any(word in text_lower for word in ['mute', 'silent', 'off']):
+            return {
+                'type': 'automation',
+                'action': 'volume',
+                'volume_action': 'mute',
+                'confidence': 0.9
+            }
+    
     # Window management intents
-    if any(word in text_lower for word in ['close', 'exit', 'quit']):
+    elif any(word in text_lower for word in ['close', 'exit', 'quit']):
         window = extract_window_reference(text_lower)
         return {
             'type': 'automation',
@@ -143,7 +167,7 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
         }
     
     # Screen reading intents
-    elif any(word in text_lower for word in ['read', 'screen', 'see', 'what', 'show', 'display']):
+    elif any(word in text_lower for word in ['read', 'screen', 'see', 'what', 'show', 'display', 'capture', 'screenshot']):
         window = extract_window_reference(text_lower)
         return {
             'type': 'screen_read',
@@ -228,17 +252,7 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
             'confidence': 0.5
         }
 
-def extract_window_reference(text: str) -> str:
-    """Extract window reference from text"""
-    # Look for common window references
-    if 'this' in text or 'current' in text or 'heimdall' in text:
-        return 'current'
-    elif 'browser' in text or 'chrome' in text or 'firefox' in text:
-        return 'browser'
-    elif 'notepad' in text or 'editor' in text:
-        return 'editor'
-    else:
-        return 'current'
+# Removed duplicate function - using the one below
 
 def extract_click_target(text: str) -> str:
     """Extract click target from text"""
@@ -335,9 +349,39 @@ What would you like me to help you with?"""
 I'm ready to help! Here are some things you can try:
 • "Read my screen" - Analyze what's on your screen
 • "Click the submit button" - Interact with UI elements
+• "Minimize notepad" - Control specific windows
+• "Increase volume" - Control system volume
 • "Help" - See all available commands
 
 What would you like me to do?"""
+
+def extract_window_reference(text_lower: str) -> str:
+    """
+    Extract window reference from user input
+    
+    Args:
+        text_lower: Lowercase user input
+        
+    Returns:
+        Window reference string
+    """
+    # Check for specific window references
+    if 'this' in text_lower or 'heimdall' in text_lower:
+        return 'heimdall'
+    elif 'kiro' in text_lower:
+        return 'kiro'
+    elif 'notepad' in text_lower:
+        return 'notepad'
+    elif 'browser' in text_lower or 'chrome' in text_lower or 'firefox' in text_lower:
+        return 'browser'
+    elif 'explorer' in text_lower or 'file' in text_lower:
+        return 'explorer'
+    elif 'calculator' in text_lower:
+        return 'calculator'
+    elif 'terminal' in text_lower or 'cmd' in text_lower or 'powershell' in text_lower:
+        return 'terminal'
+    else:
+        return 'current'
 
 # Test function
 if __name__ == "__main__":
