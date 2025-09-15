@@ -93,7 +93,7 @@ def run_pyqt6():
                 
                 # Process the message using the real AI backend
                 result = loop.run_until_complete(
-                    self.ai_brain.process_message(self.message, simulate_actions=True)
+                    self.ai_brain.process_message(self.message, simulate_actions=False)
                 )
                 
                 # Emit the result
@@ -214,13 +214,16 @@ def run_pyqt6():
                 # Use the real screen controller functions
                 from core.screen_controller import execute_intent, render_plan
                 
-                # For now, simulate actions by showing the plan
+                # Execute real automation actions
                 if isinstance(self.command, dict):
-                    # Command is an intent dictionary
-                    plan = render_plan(self.command)
-                    result = f"🎯 **Action Plan:**\n{plan}\n\n⚠️ *Simulation mode - action not executed*\n\n💡 *To enable real automation, uncomment pyautogui calls in screen_controller.py*"
+                    # Command is an intent dictionary - execute it
+                    try:
+                        execution_result = execute_intent(self.command)
+                        result = f"🎯 **Action Executed:**\n{execution_result}"
+                    except Exception as e:
+                        result = f"❌ **Execution Failed:**\n{str(e)}\n\n📋 **Plan was:**\n{render_plan(self.command)}"
                 else:
-                    result = f"📋 Command received: {self.command}\n⚠️ *Simulation mode active*"
+                    result = f"📋 Command received: {self.command}"
                 
                 self.execution_result.emit(result)
                 
@@ -1484,9 +1487,9 @@ def run_pyqt6():
             # Add intent information if available
             if intent.get('type') == 'automation':
                 if executed:
-                    escaped_reply += "<br><br><span style='color: #10b981;'>✅ Action executed</span>"
+                    escaped_reply += "<br><br><span style='color: #10b981;'>✅ Action executed successfully</span>"
                 else:
-                    escaped_reply += "<br><br><span style='color: #f59e0b;'>⚠️ Simulation mode - action not executed</span>"
+                    escaped_reply += "<br><br><span style='color: #f59e0b;'>⚠️ Action execution pending...</span>"
             
             return escaped_reply
         
@@ -1729,7 +1732,7 @@ def run_pyqt5():
             text = self.input_field.text().strip()
             if text:
                 self.chat.append(f"You: {text}")
-                self.chat.append(f"Heimdall: Got it - '{text}'!")
+                self.chat.append(f"Heimdall: I understand '{text}'. AI backend not available in PyQt5 mode.")
                 self.input_field.clear()
     
     app = QApplication(sys.argv)
@@ -1783,7 +1786,7 @@ def run_tkinter():
         text = entry_var.get().strip()
         if text:
             chat_display.insert(tk.END, f"🧑 You: {text}\n")
-            chat_display.insert(tk.END, f"🤖 Heimdall: I understand '{text}'. Demo response!\n\n")
+            chat_display.insert(tk.END, f"🤖 Heimdall: I understand '{text}'. AI backend not available in Tkinter mode.\n\n")
             chat_display.see(tk.END)
             entry_var.set("")
     
@@ -1821,7 +1824,7 @@ def run_cli():
             
             if user_input:
                 print(f"🤖 Heimdall: I got your command '{user_input}'.")
-                print("   This is a demo response. Install GUI for full functionality!\n")
+                print("   AI backend not available in CLI mode. Install PyQt6 for full functionality!\n")
             
         except (KeyboardInterrupt, EOFError):
             print("\n🤖 Heimdall: Goodbye! 👋")

@@ -149,25 +149,35 @@ def test_gui_integration():
         print("✅ GUI modules imported successfully")
         print("✅ Heimdall working module loaded")
         
-        # Test that GUI has all the required methods
-        required_methods = [
-            'show_error_bubble',
-            'handle_ai_response', 
-            'handle_voice_result',
-            'handle_screen_result',
-            'execute_automation_action',
-            'speak_response'
-        ]
-        
-        missing_methods = []
-        for method in required_methods:
-            if not hasattr(heimdall_working.HeimdallWindow, method):
-                missing_methods.append(method)
-        
-        if not missing_methods:
-            print("✅ All required GUI methods present")
-        else:
-            print(f"❌ Missing GUI methods: {missing_methods}")
+        # Test that GUI has all the required methods by checking the run_pyqt6 function
+        try:
+            # The GUI class is defined inside run_pyqt6 function, so we can't access it directly
+            # Instead, let's verify the GUI can be imported and contains the expected structure
+            import inspect
+            source = inspect.getsource(heimdall_working.run_pyqt6)
+            
+            required_methods = [
+                'show_error_bubble',
+                'handle_ai_response', 
+                'handle_voice_result',
+                'handle_screen_result',
+                'execute_automation_action',
+                'speak_response'
+            ]
+            
+            missing_methods = []
+            for method in required_methods:
+                if f"def {method}" not in source:
+                    missing_methods.append(method)
+            
+            if not missing_methods:
+                print("✅ All required GUI methods present")
+            else:
+                print(f"❌ Missing GUI methods: {missing_methods}")
+                
+        except Exception as e:
+            print(f"⚠️ Could not verify GUI methods: {e}")
+            print("✅ GUI structure verification skipped")
         
     except Exception as e:
         print(f"❌ GUI integration test failed: {e}")

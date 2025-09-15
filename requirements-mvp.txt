@@ -1,0 +1,37 @@
+# Heimdall AI Assistant - MVP Requirements
+# Core GUI Framework
+PyQt6>=6.4.0
+
+# AI and ML Dependencies
+openai-whisper>=20240930
+torch>=2.0.0
+transformers>=4.30.0
+
+# Computer Vision and OCR
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Audio Processing
+sounddevice>=0.4.6
+numpy>=1.24.0
+
+# Screen Automation
+pyautogui>=0.9.54
+
+# Text-to-Speech
+pyttsx3>=2.90
+
+# Logging and Utilities
+loguru>=0.7.0
+requests>=2.31.0
+pydantic>=2.0.0
+
+# Optional but recommended
+# For better audio quality
+# portaudio19-dev  # Linux: sudo apt install portaudio19-dev
+# For better OCR accuracy  
+# tesseract-ocr    # Install via system package manager
+
+# Development and Testing
+pytest>=7.4.0
