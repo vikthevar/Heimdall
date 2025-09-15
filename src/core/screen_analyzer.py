@@ -9,6 +9,18 @@ import numpy as np
 from loguru import logger
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
+import pyautogui
+
+# macOS window enumeration (optional)
+try:
+    from Quartz import (
+        CGWindowListCopyWindowInfo,
+        kCGWindowListOptionOnScreenOnly,
+        kCGNullWindowID,
+    )
+    QUARTZ_AVAILABLE = True
+except Exception:
+    QUARTZ_AVAILABLE = False
 
 
 @dataclass
@@ -249,3 +261,71 @@ def capture_fullscreen_and_ocr() -> str:
     except Exception as e:
         logger.error(f"Screen capture and OCR failed: {e}")
         return f"❌ Failed to capture and analyze screen: {str(e)}"
+
+
+def list_open_windows() -> List[Dict[str, Any]]:
+    """
+    List open on-screen windows with titles and bounds (macOS only).
+    Returns empty list on unsupported platforms or permission issues.
+    """
+    try:
+        if not QUARTZ_AVAILABLE:
+            return []
+        window_info = CGWindowListCopyWindowInfo(
+            kCGWindowListOptionOnScreenOnly, kCGNullWindowID
+        )
+        windows: List[Dict[str, Any]] = []
+        for w in window_info:
+            title = w.get('kCGWindowName') or ''
+            owner = w.get('kCGWindowOwnerName') or ''
+            bounds = w.get('kCGWindowBounds') or {}
+            number = w.get('kCGWindowNumber')
+            if title or owner:
+                windows.append({
+                    'id': number,
+                    'title': title,
+                    'owner': owner,
+                    'bounds': bounds,
+                })
+        return windows
+    except Exception as e:
+        logger.error(f"Window list failed: {e}")
+        return []
+
+
+def capture_window_and_ocr(window_id: int) -> str:
+    """
+    Capture a specific window by id and extract text using OCR (macOS).
+    Falls back to fullscreen if window not found.
+    """
+    try:
+        if not QUARTZ_AVAILABLE:
+            return capture_fullscreen_and_ocr()
+        windows = list_open_windows()
+        match = next((w for w in windows if int(w['id']) == int(window_id)), None)
+        if not match:
+            return capture_fullscreen_and_ocr()
+        b = match['bounds']
+        x, y, w, h = int(b.get('X', 0)), int(b.get('Y', 0)), int(b.get('Width', 0)), int(b.get('Height', 0))
+        if w <= 0 or h <= 0:
+            return capture_fullscreen_and_ocr()
+        screenshot = pyautogui.screenshot(region=(x, y, w, h))
+        img_array = np.array(screenshot)
+        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        enhanced = clahe.apply(gray)
+        denoised = cv2.medianBlur(enhanced, 3)
+        text = pytesseract.image_to_string(denoised, config='--psm 6')
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        cleaned_text = '\n'.join(lines)
+        if cleaned_text:
+            owner = match.get('owner') or 'Window'
+            title = match.get('title') or ''
+            header = f"📖 **{owner} — {title}**\n\n" if title else f"📖 **{owner}**\n\n"
+            return header + cleaned_text
+        else:
+            return "📖 Window captured but no readable text found."
+    except Exception as e:
+        logger.error(f"Window capture and OCR failed: {e}")
+        return f"❌ Failed to capture window: {str(e)}"

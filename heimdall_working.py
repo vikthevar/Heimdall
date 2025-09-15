@@ -548,7 +548,9 @@ def run_pyqt6():
                     padding: 20px;
                 }
             """)
-            
+            # Prevent editing chat history
+            self.chat.setReadOnly(True)
+
             # Welcome message - will be updated after AI initialization
             self.welcome_html = """
             <div style='color: #d4af37; font-weight: bold; font-size: 18px; margin-bottom: 15px;'>
@@ -637,7 +639,7 @@ def run_pyqt6():
             """)
             layout.addWidget(self.screen_status)
             
-            # Screen content display
+            # Screen content display (read-only)
             self.screen_content = QTextEdit()
             self.screen_content.setStyleSheet("""
                 QTextEdit {
@@ -650,8 +652,23 @@ def run_pyqt6():
                     font-size: 12px;
                 }
             """)
+            self.screen_content.setReadOnly(True)
             self.screen_content.setPlaceholderText("Screen content will appear here after clicking the 📸 button...")
             layout.addWidget(self.screen_content)
+            
+            # Window selector controls
+            from PyQt6.QtWidgets import QHBoxLayout, QComboBox, QPushButton
+            win_controls = QHBoxLayout()
+            self.window_combo = QComboBox()
+            self.window_combo.setMinimumWidth(300)
+            refresh_btn = QPushButton("Refresh Windows")
+            capture_btn = QPushButton("Capture Selected Window")
+            refresh_btn.clicked.connect(self.refresh_window_list)
+            capture_btn.clicked.connect(self.capture_selected_window)
+            win_controls.addWidget(self.window_combo)
+            win_controls.addWidget(refresh_btn)
+            win_controls.addWidget(capture_btn)
+            layout.addLayout(win_controls)
             
             return widget
         
@@ -919,8 +936,8 @@ def run_pyqt6():
         def initialize_screen_controller(self):
             """Initialize screen controller with error handling"""
             try:
-                from core.screen_controller import execute_screen_command
-                self.screen_controller = execute_screen_command
+                from core.screen_controller import execute_intent
+                self.screen_controller = execute_intent
                 logger.info("✅ Screen controller initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize screen controller: {e}")
@@ -1156,6 +1173,33 @@ def run_pyqt6():
                 self.show_error_message(f"Screen reading failed: {content}")
             
             self.scroll_to_bottom()
+
+        def refresh_window_list(self):
+            try:
+                from core.screen_analyzer import list_open_windows
+                wins = list_open_windows()
+                self._windows = wins
+                self.window_combo.clear()
+                for w in wins:
+                    title = w.get('title') or w.get('owner') or 'Untitled'
+                    owner = w.get('owner') or ''
+                    label = f"{owner} — {title}" if title else owner
+                    self.window_combo.addItem(label, userData=w.get('id'))
+            except Exception as e:
+                self.show_error_bubble(f"Failed to list windows: {e}")
+
+        def capture_selected_window(self):
+            try:
+                from core.screen_analyzer import capture_window_and_ocr
+                idx = self.window_combo.currentIndex()
+                if idx < 0:
+                    self.show_error_bubble("No window selected")
+                    return
+                win_id = self.window_combo.currentData()
+                content = capture_window_and_ocr(int(win_id))
+                self.handle_screen_result(content)
+            except Exception as e:
+                self.show_error_bubble(f"Window capture failed: {e}")
         
         def handle_screen_error(self, error_msg):
             """Handle screen reading error"""
@@ -1537,7 +1581,8 @@ def run_pyqt6():
                     self.current_command_worker.terminate()
                     self.current_command_worker.wait()
                 
-                self.current_command_worker = CommandExecutorThread(None, intent, self)
+                # Pass through the real execute_intent function to enable execution
+                self.current_command_worker = CommandExecutorThread(self.screen_controller, intent, self)
                 self.current_command_worker.execution_result.connect(self.handle_execution_result)
                 self.current_command_worker.error_occurred.connect(self.handle_execution_error)
                 self.current_command_worker.start()
