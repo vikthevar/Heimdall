@@ -77,7 +77,29 @@ Heimdall is an intelligent voice assistant that uses **completely free APIs and 
    ollama pull llama3.2:3b
    ```
 
-4. **Run Heimdall**
+4. **Create UI icons (optional)**
+   ```bash
+   python create_icons.py
+   ```
+
+5. **Run Heimdall**
+   ```bash
+   # 🎨 Modern Desktop GUI (RECOMMENDED)
+   python heimdall_working.py
+   
+   # 💻 Command-line version
+   python main.py
+   
+   # 🔧 Simple compatibility version
+   python main_simple.py
+   ```
+
+## 📊 **Project Status**
+- ✅ **Modern GUI**: Beautiful dark theme with gold/purple accents
+- ✅ **Free APIs**: 100% local processing, no API costs
+- ✅ **Cross-Platform**: Works on Windows, macOS, Linux
+- ✅ **Privacy-First**: All data stays on your machine
+- 🔧 **Integration Needed**: Connect GUI to AI backend (see PROJECT_SUMMARY.md)
    ```bash
    python main.py
    ```

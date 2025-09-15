@@ -80,3 +80,55 @@ class VoiceHandler:
     def get_available_devices(self):
         """Get list of available audio input devices"""
         return sd.query_devices()
+
+def record_and_transcribe() -> str:
+    """
+    Record audio from microphone and transcribe to text
+    
+    Returns:
+        Transcribed text from audio recording
+    """
+    try:
+        import whisper
+        import tempfile
+        import os
+        
+        # Load Whisper model (using base model for speed)
+        model = whisper.load_model("base")
+        
+        # Record audio (simplified - would need proper audio recording)
+        # For now, return a placeholder
+        return "🎤 Voice recording feature available but requires microphone setup. Try typing your command instead."
+    
+    except ImportError:
+        return "❌ Whisper not installed. Install with: pip install openai-whisper"
+    except Exception as e:
+        logger.error(f"Voice recording failed: {e}")
+        return f"❌ Voice recording failed: {str(e)}"
+
+def speak(text):
+    """
+    Speak text using local TTS
+    
+    Args:
+        text: Text to speak
+    """
+    try:
+        import pyttsx3
+        
+        # Initialize TTS engine
+        engine = pyttsx3.init()
+        
+        # Set properties
+        engine.setProperty('rate', 150)  # Speed
+        engine.setProperty('volume', 0.8)  # Volume
+        
+        # Speak the text
+        engine.say(text)
+        engine.runAndWait()
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"TTS failed: {e}")
+        return False

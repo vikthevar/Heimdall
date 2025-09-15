@@ -4,19 +4,25 @@
 
 ```
 heimdall/
-├── 📄 main.py                    # Main application entry point
+├── 📄 main.py                    # Command-line application entry point
+├── 📄 heimdall_working.py        # Modern desktop GUI (MAIN ENTRY POINT)
+├── 📄 main_simple.py             # Simple Tkinter fallback GUI
 ├── 📄 setup.py                   # Automated setup script
 ├── 📄 test_setup.py              # Setup verification script
+├── 📄 create_icons.py            # Icon generation script
+├── 📄 install_gui.py             # GUI installation helper
 ├── 📄 requirements.txt           # Python dependencies (all free)
+├── 📄 requirements-minimal.txt   # Minimal dependencies
 ├── 📄 .env.example               # Environment configuration template
 ├── 📄 README.md                  # Project documentation
 ├── 📄 USAGE.md                   # Usage guide and troubleshooting
+├── 📄 TROUBLESHOOTING.md         # Detailed troubleshooting guide
 ├── 📄 PROJECT_STRUCTURE.md       # This file
 ├── 📄 SECURITY.md                # Security guidelines
 ├── 📄 .gitignore                 # Git ignore rules
 │
 ├── 📁 src/                       # Source code
-│   ├── 📁 core/                  # Core functionality
+│   ├── 📁 core/                  # Core AI functionality
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 voice_handler.py       # Local Whisper speech recognition
 │   │   ├── 📄 voice_output.py        # pyttsx3 text-to-speech
@@ -25,6 +31,14 @@ heimdall/
 │   │   ├── 📄 screen_analyzer.py     # Tesseract OCR + OpenCV analysis
 │   │   └── 📄 screen_controller.py   # PyAutoGUI automation
 │   │
+│   ├── 📁 ui/                    # Desktop GUI Components
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 main_window.py         # PyQt6 main window (legacy)
+│   │   ├── 📄 components.py          # Reusable UI components
+│   │   ├── 📄 styles.py              # UI themes and styling
+│   │   ├── 📄 gui_main.py            # GUI application controller
+│   │   └── 📄 tkinter_gui.py         # Tkinter fallback GUI
+│   │
 │   ├── 📁 storage/               # Local storage (no cloud)
 │   │   ├── 📄 __init__.py
 │   │   └── 📄 database.py            # SQLite database operations
@@ -32,6 +46,12 @@ heimdall/
 │   └── 📁 utils/                 # Utilities
 │       ├── 📄 __init__.py
 │       └── 📄 config.py              # Configuration management
+│
+├── 📁 assets/                    # UI assets and icons
+│   ├── 📄 README.md              # Asset documentation
+│   ├── 📄 heimdall_icon.png      # Main application icon
+│   ├── 📄 avatar_ai.png          # AI assistant avatar
+│   └── 📄 *.png                  # Various UI icons
 │
 ├── 📁 data/                      # Local data (created at runtime)
 │   ├── 📁 screenshots/           # Captured screenshots

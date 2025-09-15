@@ -204,3 +204,48 @@ class ScreenAnalyzer:
         """Get center coordinates of an element"""
         x, y, w, h = element.bbox
         return (x + w // 2, y + h // 2)
+
+def capture_fullscreen_and_ocr() -> str:
+    """
+    Capture fullscreen screenshot and extract text using OCR
+    
+    Returns:
+        Extracted text content from the screen
+    """
+    try:
+        # Capture screenshot
+        from PIL import ImageGrab
+        screenshot = ImageGrab.grab()
+        
+        # Convert to numpy array for processing
+        img_array = np.array(screenshot)
+        
+        # Convert RGB to BGR for OpenCV
+        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        
+        # Convert to grayscale for better OCR
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        
+        # Apply some preprocessing to improve OCR
+        # Increase contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        enhanced = clahe.apply(gray)
+        
+        # Denoise
+        denoised = cv2.medianBlur(enhanced, 3)
+        
+        # Extract text using Tesseract
+        text = pytesseract.image_to_string(denoised, config='--psm 6')
+        
+        # Clean up the text
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        cleaned_text = '\n'.join(lines)
+        
+        if cleaned_text:
+            return f"📖 **Screen Content:**\n\n{cleaned_text}"
+        else:
+            return "📖 Screen captured but no readable text found. The screen may contain mostly images or graphics."
+    
+    except Exception as e:
+        logger.error(f"Screen capture and OCR failed: {e}")
+        return f"❌ Failed to capture and analyze screen: {str(e)}"
