@@ -10,6 +10,9 @@ from typing import Optional
 import tempfile
 import wave
 import os
+import ssl
+import urllib.error
+import certifi
 
 
 class VoiceHandler:
@@ -24,9 +27,21 @@ class VoiceHandler:
     async def initialize(self):
         """Load Whisper model"""
         try:
+            # Ensure SSL uses certifi CA bundle for urllib (used by whisper downloads)
+            try:
+                os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+                os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
+                ssl_context = ssl.create_default_context(cafile=certifi.where())
+                ssl._create_default_https_context = lambda: ssl_context
+            except Exception as e:
+                logger.warning(f"Failed to set certifi SSL context: {e}")
+
             logger.info(f"Loading Whisper model: {self.model_size}")
             self.model = whisper.load_model(self.model_size)
             logger.info("Whisper model loaded successfully")
+        except (urllib.error.URLError, ssl.SSLError) as e:
+            logger.error(f"SSL error while loading Whisper model: {e}")
+            raise
         except Exception as e:
             logger.error(f"Failed to load Whisper model: {e}")
             raise
