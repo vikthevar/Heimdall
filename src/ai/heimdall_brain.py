@@ -7,6 +7,13 @@ import asyncio
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
+import time
+import os
+
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +72,99 @@ class HeimdallBrain:
     def __init__(self):
         self.initialized = False
     
+    def handle_demo_command(self, text: str) -> Optional[str]:
+        """
+        macOS demo command overrides. Returns success message if a demo
+        command is matched and executed, otherwise None to fall through
+        to the normal intent parser + Ollama pipeline.
+        """
+        try:
+            if not text:
+                return None
+            t = text.lower().strip()
+            if pyautogui is None:
+                return None
+            
+            # Helper for accessibility warning
+            def accessibility_warning(err: Exception) -> str:
+                return (
+                    f"⚠️ Automation failed: {err}\n\n"
+                    "Please enable Accessibility permissions in System Settings → Privacy & Security → Accessibility for your terminal/Python app."
+                )
+
+            # Show desktop
+            if t in [
+                "show me my desktop",
+                "show desktop",
+                "navigate to my desktop",
+                "navigate to desktop",
+                "switch to desktop",
+                "go to desktop",
+            ]:
+                try:
+                    # Primary: macOS Mission Control Show Desktop
+                    pyautogui.hotkey('command', 'f3')
+                except Exception as e1:
+                    try:
+                        pyautogui.hotkey('fn', 'f11')
+                    except Exception as e2:
+                        return accessibility_warning(e2)
+                return "✅ Switched to Desktop"
+            
+            # Scroll
+            if t == "scroll down":
+                try:
+                    pyautogui.scroll(-500)
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Scrolled down"
+            if t == "scroll up":
+                try:
+                    pyautogui.scroll(500)
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Scrolled up"
+            if t == "scroll to top":
+                try:
+                    pyautogui.hotkey('command', 'up')
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Scrolled to top"
+            
+            # Type demo
+            if t == "type hello world":
+                try:
+                    time.sleep(0.2)
+                    pyautogui.typewrite("hello world", interval=0.05)
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Typed: hello world"
+            
+            # App window controls
+            if t == "close this app":
+                try:
+                    pyautogui.hotkey('command', 'q')
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Requested app to close (⌘+Q)"
+            if t == "minimize this app":
+                try:
+                    pyautogui.hotkey('command', 'm')
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Minimized app (⌘+M)"
+            if t == "maximize this app":
+                try:
+                    pyautogui.hotkey('command', 'ctrl', 'f')
+                except Exception as e:
+                    return accessibility_warning(e)
+                return "✅ Toggled fullscreen (⌘+Ctrl+F)"
+            
+            return None
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Demo command failed: {e}")
+            return None
+    
     async def initialize(self):
         """Initialize all AI components"""
         try:
@@ -111,6 +211,16 @@ class HeimdallBrain:
         
         try:
             logger.info(f"🧠 Processing message: {text}")
+            
+            # 0) Demo command override (macOS) — execute and short-circuit if matched
+            demo_result = self.handle_demo_command(text)
+            if demo_result is not None:
+                return {
+                    'reply': demo_result,
+                    'intent': {'type': 'automation', 'action': 'demo_override'},
+                    'executed': True,
+                    'execution_result': demo_result
+                }
             
             # Step 1: Get intent and reply from LLM
             llm_result = intent_and_reply(text)

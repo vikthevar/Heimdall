@@ -192,10 +192,14 @@ def run_pyqt6():
                 self.error_occurred.emit(f"OCR dependencies missing: {str(e)}")
             except PermissionError as e:
                 logger.error(f"Screen capture permission error: {e}")
-                self.error_occurred.emit(f"Screen capture permission denied: {str(e)}")
+                self.error_occurred.emit(
+                    "Screen capture permission denied. On macOS, enable Screen Recording for your terminal/Python in System Settings → Privacy & Security → Screen Recording."
+                )
             except Exception as e:
                 logger.error(f"Screen reading error: {e}")
-                self.error_occurred.emit(f"Screen reading failed: {str(e)}")
+                self.error_occurred.emit(
+                    f"Screen reading failed: {str(e)}\n\nTip (macOS): Ensure Screen Recording permission is granted in System Settings → Privacy & Security → Screen Recording."
+                )
             finally:
                 try:
                     loop.close()
@@ -1491,7 +1495,15 @@ def run_pyqt6():
                     self.execute_automation_action(intent)
                 
                 # Add TTS output for AI response
-                self.speak_response(reply)
+                try:
+                    self.speak_response(reply)
+                except Exception:
+                    try:
+                        # macOS fallback TTS to avoid PyObjC issues
+                        safe = self.clean_text_for_tts(reply).replace('"', '\"')
+                        os.system(f'say "{safe}"')
+                    except Exception:
+                        pass
                 
             except Exception as e:
                 logger.error(f"Error handling AI response: {e}")

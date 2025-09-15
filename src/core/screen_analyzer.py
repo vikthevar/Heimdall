@@ -256,8 +256,12 @@ def capture_fullscreen_and_ocr(window_title: str = None) -> str:
             screenshot = capture_window_screenshot(window_title)
             source_info = f"Window: {window_title}"
         else:
-            from PIL import ImageGrab
-            screenshot = ImageGrab.grab()
+            # Prefer pyautogui for macOS stability; fallback to ImageGrab
+            try:
+                screenshot = pyautogui.screenshot()
+            except Exception:
+                from PIL import ImageGrab
+                screenshot = ImageGrab.grab()
             source_info = "Full Screen"
         
         if not screenshot:
@@ -308,7 +312,8 @@ def capture_fullscreen_and_ocr(window_title: str = None) -> str:
     
     except Exception as e:
         logger.error(f"Screen capture and OCR failed: {e}")
-        return f"❌ Failed to capture and analyze screen: {str(e)}"
+        hint = "\n\nTip (macOS): Ensure Screen Recording permission is granted to Terminal/Python in System Settings > Privacy & Security > Screen Recording."
+        return f"❌ Failed to capture and analyze screen: {str(e)}{hint}"
 
 def detect_ui_elements(img_bgr: np.ndarray) -> List[Dict[str, Any]]:
     """
