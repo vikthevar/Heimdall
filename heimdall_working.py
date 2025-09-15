@@ -1403,22 +1403,60 @@ def run_pyqt6():
             self.scroll_to_bottom()
         
         def add_processing_message(self):
-            """Add processing indicator"""
+            """Add processing indicator with animated gray dots only"""
+            self.processing_dots = 0
+            self.processing_timer = QTimer()
+            self.processing_timer.timeout.connect(self.update_processing_animation)
+            self.processing_timer.start(400)  # Update every 400ms for smooth animation
+            
             processing_html = """
             <div id='processing-msg' style='text-align: left; margin: 15px 0;'>
-                <div style='background: #2a2a2a; color: #f59e0b; padding: 12px 16px; 
+                <div style='background: #2a2a2a; color: #888; padding: 12px 16px; 
                            border-radius: 15px; border: 1px solid #444; 
-                           display: inline-block; max-width: 70%;'>
-                    🤔 Thinking...
+                           display: inline-block; max-width: 70%; text-align: center; min-width: 60px;'>
+                    <span id='dots' style='font-size: 18px; letter-spacing: 2px;'>●●●</span>
                 </div>
             </div>
             """
             self.chat.insertHtml(processing_html)
             self.scroll_to_bottom()
         
+        def update_processing_animation(self):
+            """Update the processing dots animation - cycles left to right continuously"""
+            try:
+                if hasattr(self, 'processing_timer') and self.processing_timer.isActive():
+                    self.processing_dots = (self.processing_dots + 1) % 3  # Only 3 states, no pause
+                    
+                    # Create left-to-right lighting pattern
+                    if self.processing_dots == 0:
+                        dots = '<span style="opacity: 1;">●</span><span style="opacity: 0.3;">●</span><span style="opacity: 0.3;">●</span>'
+                    elif self.processing_dots == 1:
+                        dots = '<span style="opacity: 0.3;">●</span><span style="opacity: 1;">●</span><span style="opacity: 0.3;">●</span>'
+                    else:  # self.processing_dots == 2
+                        dots = '<span style="opacity: 0.3;">●</span><span style="opacity: 0.3;">●</span><span style="opacity: 1;">●</span>'
+                    
+                    # Update the processing message
+                    current_html = self.chat.toHtml()
+                    if 'processing-msg' in current_html:
+                        import re
+                        # Replace the dots in the processing message
+                        updated_html = re.sub(
+                            r'<span id=\'dots\'[^>]*>.*?</span>',
+                            f'<span id=\'dots\' style=\'font-size: 18px; letter-spacing: 2px;\'>{dots}</span>',
+                            current_html
+                        )
+                        self.chat.setHtml(updated_html)
+                        self.scroll_to_bottom()
+            except Exception as e:
+                logger.error(f"Animation update error: {e}")
+        
         def handle_ai_response(self, result):
             """Handle AI response from worker thread with action execution"""
             try:
+                # Stop processing animation
+                if hasattr(self, 'processing_timer'):
+                    self.processing_timer.stop()
+                
                 # Remove processing message by replacing chat content
                 current_html = self.chat.toHtml()
                 # Remove the processing message
@@ -1468,6 +1506,10 @@ def run_pyqt6():
         
         def handle_ai_error(self, error_msg):
             """Handle AI processing errors"""
+            # Stop processing animation
+            if hasattr(self, 'processing_timer'):
+                self.processing_timer.stop()
+            
             # Remove processing message
             current_html = self.chat.toHtml()
             import re

@@ -200,6 +200,14 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
         # Extract target from text
         target = extract_click_target(text_lower)
         
+        # Special handling for Heimdall UI elements
+        if any(word in text_lower for word in ['screen button', 'camera button', 'screen']):
+            target = 'screen button'
+        elif any(word in text_lower for word in ['voice button', 'microphone', 'mic']):
+            target = 'voice button'
+        elif any(word in text_lower for word in ['send button', 'send']):
+            target = 'send button'
+        
         return {
             'type': 'automation',
             'action': 'click',
@@ -275,12 +283,23 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
 
 def extract_click_target(text: str) -> str:
     """Extract click target from text"""
-    if any(word in text for word in ['close', 'x', 'exit']):
+    # Heimdall-specific UI elements
+    if any(word in text for word in ['screen button', 'screen', 'camera button', '📸']):
+        return 'screen button'
+    elif any(word in text for word in ['voice button', 'microphone', 'mic button', '🎤']):
+        return 'voice button'
+    elif any(word in text for word in ['send button', 'send']):
+        return 'send button'
+    
+    # Window controls
+    elif any(word in text for word in ['close', 'x', 'exit']):
         return 'close button'
     elif any(word in text for word in ['minimize', 'hide']):
         return 'minimize button'
     elif any(word in text for word in ['maximize', 'fullscreen']):
         return 'maximize button'
+    
+    # Common buttons
     elif 'submit' in text:
         return 'submit button'
     elif 'ok' in text:

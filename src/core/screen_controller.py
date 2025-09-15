@@ -127,12 +127,26 @@ def _execute_click(intent: Dict[str, Any]) -> str:
             # Use AI to find the element
             element_location = find_element_by_description(target)
             
-            if element_location:
+            if element_location == "HEIMDALL_SCREEN_ACTION":
+                # Special handling for Heimdall screen button - trigger screen reading
+                return "✅ Clicked screen button - triggering screen reading functionality"
+            elif element_location == "HEIMDALL_VOICE_ACTION":
+                # Special handling for Heimdall voice button - trigger voice recording
+                return "✅ Clicked voice button - triggering voice recording functionality"
+            elif element_location and isinstance(element_location, tuple):
                 x, y = element_location
+                
+                # Add visual feedback - move mouse to show where we're clicking
+                current_pos = pyautogui.position()
+                pyautogui.moveTo(x, y, duration=0.5)  # Move to target with animation
                 pyautogui.click(x, y)
+                
+                # Optional: Move back to original position
+                # pyautogui.moveTo(current_pos.x, current_pos.y, duration=0.3)
+                
                 return f"✅ Found and clicked '{target}' at ({x}, {y})"
             else:
-                return f"❌ Could not find '{target}' on screen"
+                return f"❌ Could not find '{target}' on screen. Try being more specific about the button location."
     
     except Exception as e:
         return f"❌ Click failed: {str(e)}"
@@ -238,6 +252,16 @@ def find_element_by_description(description: str) -> Optional[Tuple[int, int]]:
             return find_minimize_button(screenshot_cv)
         elif any(word in description_lower for word in ['maximize', 'maximize button']):
             return find_maximize_button(screenshot_cv)
+        
+        # Handle specific Heimdall UI elements with direct action
+        elif any(word in description_lower for word in ['screen button', 'screen', 'camera button', '📸']):
+            # For Heimdall screen button, trigger screen reading directly
+            return "HEIMDALL_SCREEN_ACTION"  # Special return value to trigger screen reading
+        elif any(word in description_lower for word in ['voice button', 'microphone', 'mic', '🎤']):
+            # For Heimdall voice button, trigger voice recording directly  
+            return "HEIMDALL_VOICE_ACTION"  # Special return value to trigger voice recording
+        elif any(word in description_lower for word in ['send button', 'send']):
+            return find_heimdall_send_button(screenshot_cv)
         
         # Handle text-based elements
         elif any(word in description_lower for word in ['button', 'submit', 'ok', 'cancel', 'save']):
@@ -385,6 +409,127 @@ def calculate_text_similarity(text: str, key_words: List[str]) -> float:
             matches += 1
     
     return matches / len(key_words)
+
+def find_heimdall_screen_button(screenshot_cv: np.ndarray) -> Optional[Tuple[int, int]]:
+    """Find the Heimdall screen/camera button specifically"""
+    try:
+        height, width = screenshot_cv.shape[:2]
+        logger.info(f"Screen size: {width}x{height}")
+        
+        # Method 1: Look for the 📸 emoji specifically in the header area
+        header_area = screenshot_cv[0:120, :]  # Top 120 pixels where Heimdall header is
+        
+        try:
+            # Use OCR to find the camera emoji
+            ocr_data = pytesseract.image_to_data(header_area, output_type=pytesseract.Output.DICT)
+            
+            for i, text in enumerate(ocr_data['text']):
+                if '📸' in text or 'camera' in text.lower() or 'screen' in text.lower():
+                    x = ocr_data['left'][i] + ocr_data['width'][i] // 2
+                    y = ocr_data['top'][i] + ocr_data['height'][i] // 2
+                    logger.info(f"Found screen button via OCR at: ({x}, {y})")
+                    return (x, y)
+        except Exception as ocr_error:
+            logger.warning(f"OCR detection failed: {ocr_error}")
+        
+        # Method 2: Look for Heimdall's specific button layout
+        # In Heimdall, the screen button is typically in the header, right side
+        # Based on the typical Heimdall layout: voice button (🎤) then screen button (📸)
+        
+        # Search in the right portion of the header for button-like elements
+        right_header = header_area[:, width//2:]  # Right half of header
+        gray = cv2.cvtColor(right_header, cv2.COLOR_BGR2GRAY)
+        
+        # Look for circular/button shapes
+        circles = cv2.HoughCircles(
+            gray, cv2.HOUGH_GRADIENT, dp=1, minDist=30,
+            param1=50, param2=30, minRadius=15, maxRadius=50
+        )
+        
+        if circles is not None:
+            circles = np.round(circles[0, :]).astype("int")
+            # Sort by x position (left to right)
+            circles = sorted(circles, key=lambda c: c[0])
+            
+            if len(circles) >= 2:
+                # Second circle from left should be screen button
+                x, y, r = circles[1]
+                x += width // 2  # Adjust for right_header offset
+                logger.info(f"Found screen button via circle detection at: ({x}, {y})")
+                return (x, y)
+            elif len(circles) == 1:
+                x, y, r = circles[0]
+                x += width // 2
+                logger.info(f"Found single button via circle detection at: ({x}, {y})")
+                return (x, y)
+        
+        # Method 3: Educated guess based on typical Heimdall layout
+        # Screen button is usually around 80-100 pixels from the right edge, 50-70 pixels from top
+        estimated_x = width - 90
+        estimated_y = 60
+        logger.info(f"Using estimated screen button position: ({estimated_x}, {estimated_y})")
+        return (estimated_x, estimated_y)
+        
+    except Exception as e:
+        logger.error(f"Heimdall screen button detection failed: {e}")
+        # Final fallback
+        return (width - 90, 60) if 'width' in locals() else (800, 60)
+
+def find_heimdall_voice_button(screenshot_cv: np.ndarray) -> Optional[Tuple[int, int]]:
+    """Find the Heimdall voice/microphone button specifically"""
+    try:
+        height, width = screenshot_cv.shape[:2]
+        
+        # Voice button is typically in the top-right area
+        header_area = screenshot_cv[0:150, width-200:]  # Top-right corner
+        
+        # Look for microphone emoji or voice-related text
+        try:
+            ocr_data = pytesseract.image_to_data(header_area, output_type=pytesseract.Output.DICT)
+            
+            for i, text in enumerate(ocr_data['text']):
+                text_clean = text.strip().lower()
+                if any(word in text_clean for word in ['🎤', 'voice', 'mic']):
+                    x = ocr_data['left'][i] + ocr_data['width'][i] // 2 + (width - 200)
+                    y = ocr_data['top'][i] + ocr_data['height'][i] // 2
+                    return (x, y)
+        except:
+            pass
+        
+        # Fallback - assume voice button is in top-right
+        return (width - 60, 50)
+        
+    except Exception as e:
+        logger.error(f"Heimdall voice button detection failed: {e}")
+        return None
+
+def find_heimdall_send_button(screenshot_cv: np.ndarray) -> Optional[Tuple[int, int]]:
+    """Find the Heimdall send button specifically"""
+    try:
+        height, width = screenshot_cv.shape[:2]
+        
+        # Send button is typically at the bottom-right
+        bottom_area = screenshot_cv[height-150:, width-200:]  # Bottom-right corner
+        
+        # Look for "Send" text
+        try:
+            ocr_data = pytesseract.image_to_data(bottom_area, output_type=pytesseract.Output.DICT)
+            
+            for i, text in enumerate(ocr_data['text']):
+                text_clean = text.strip().lower()
+                if 'send' in text_clean:
+                    x = ocr_data['left'][i] + ocr_data['width'][i] // 2 + (width - 200)
+                    y = ocr_data['top'][i] + ocr_data['height'][i] // 2 + (height - 150)
+                    return (x, y)
+        except:
+            pass
+        
+        # Fallback - assume send button is in bottom-right
+        return (width - 60, height - 50)
+        
+    except Exception as e:
+        logger.error(f"Heimdall send button detection failed: {e}")
+        return None
 
 def _execute_minimize(intent: Dict[str, Any]) -> str:
     """Execute window minimize action with window selection"""

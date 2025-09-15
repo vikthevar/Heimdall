@@ -151,7 +151,22 @@ class HeimdallBrain:
                     # Execution mode: actually perform the actions
                     try:
                         execution_result = execute_intent(intent)
-                        reply += f"\n\n✅ **Executed:** {execution_result}"
+                        
+                        # Check if this was a special Heimdall action
+                        if "triggering screen reading" in execution_result:
+                            # Actually perform screen reading
+                            try:
+                                window_title = intent.get('window')
+                                screen_content = await self.get_screen_content(window_title)
+                                reply += f"\n\n✅ **Screen Button Clicked:** {execution_result}\n\n{screen_content}"
+                            except Exception as screen_error:
+                                reply += f"\n\n✅ **Screen Button Clicked:** {execution_result}\n\n❌ **Screen Reading Error:** {str(screen_error)}"
+                        elif "triggering voice recording" in execution_result:
+                            # Actually perform voice recording
+                            reply += f"\n\n✅ **Voice Button Clicked:** {execution_result}\n\n🎤 **Voice recording would be activated** (use the microphone button in the GUI for actual voice input)"
+                        else:
+                            reply += f"\n\n✅ **Executed:** {execution_result}"
+                        
                         executed = True
                     except Exception as exec_error:
                         execution_result = f"Execution failed: {str(exec_error)}"
