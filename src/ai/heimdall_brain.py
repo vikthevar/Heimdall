@@ -124,11 +124,20 @@ class HeimdallBrain:
             except Exception as db_error:
                 logger.warning(f"Failed to save to database: {db_error}")
             
-            # Step 3: Handle automation intents
+            # Step 3: Handle special intents
             executed = False
             execution_result = None
             
-            if intent.get('type') == 'automation':
+            if intent.get('type') == 'screen_read':
+                # Handle screen reading with optional window specification
+                try:
+                    window_title = intent.get('window')
+                    screen_content = await self.get_screen_content(window_title)
+                    reply += f"\n\n{screen_content}"
+                except Exception as screen_error:
+                    reply += f"\n\n❌ **Screen Reading Error:** {str(screen_error)}"
+            
+            elif intent.get('type') == 'automation':
                 if simulate_actions:
                     # Simulation mode: show plan but don't execute
                     plan = render_plan(intent)
@@ -161,10 +170,10 @@ class HeimdallBrain:
                 'execution_result': None
             }
     
-    async def get_screen_content(self) -> str:
-        """Capture and analyze current screen content"""
+    async def get_screen_content(self, window_title: str = None) -> str:
+        """Capture and analyze screen content"""
         try:
-            return capture_fullscreen_and_ocr()
+            return capture_fullscreen_and_ocr(window_title)
         except Exception as e:
             logger.error(f"Screen capture error: {e}")
             return f"❌ Failed to capture screen: {str(e)}"

@@ -167,9 +167,10 @@ def run_pyqt6():
         screen_result = pyqtSignal(str)    # Emits screen content
         error_occurred = pyqtSignal(str)   # Emits error messages
         
-        def __init__(self, screen_analyzer, parent=None):
+        def __init__(self, screen_analyzer, window_title=None, parent=None):
             super().__init__(parent)
             self.screen_analyzer = screen_analyzer
+            self.window_title = window_title
         
         def run(self):
             """Capture and analyze screen in background with comprehensive error handling"""
@@ -179,7 +180,10 @@ def run_pyqt6():
                 
                 # Use the real screen analyzer function
                 from core.screen_analyzer import capture_fullscreen_and_ocr
-                content = capture_fullscreen_and_ocr()
+                
+                # Check if we should capture a specific window
+                window_title = getattr(self, 'window_title', None)
+                content = capture_fullscreen_and_ocr(window_title)
                 
                 self.screen_result.emit(content)
                 

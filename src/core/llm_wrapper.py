@@ -114,24 +114,48 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
     Returns:
         Intent dictionary
     """
+    # Window management intents
+    if any(word in text_lower for word in ['close', 'exit', 'quit']):
+        window = extract_window_reference(text_lower)
+        return {
+            'type': 'automation',
+            'action': 'close',
+            'window': window,
+            'confidence': 0.9
+        }
+    
+    elif any(word in text_lower for word in ['minimize', 'hide']):
+        window = extract_window_reference(text_lower)
+        return {
+            'type': 'automation',
+            'action': 'minimize',
+            'window': window,
+            'confidence': 0.9
+        }
+    
+    elif any(word in text_lower for word in ['maximize', 'fullscreen', 'full screen']):
+        window = extract_window_reference(text_lower)
+        return {
+            'type': 'automation',
+            'action': 'maximize',
+            'window': window,
+            'confidence': 0.9
+        }
+    
     # Screen reading intents
-    if any(word in text_lower for word in ['read', 'screen', 'see', 'what', 'show', 'display']):
+    elif any(word in text_lower for word in ['read', 'screen', 'see', 'what', 'show', 'display']):
+        window = extract_window_reference(text_lower)
         return {
             'type': 'screen_read',
             'action': 'analyze_screen',
+            'window': window,
             'confidence': 0.9
         }
     
     # Click/automation intents
     elif any(word in text_lower for word in ['click', 'press', 'tap', 'select']):
         # Extract target from text
-        target = "button"  # Default
-        if "button" in text_lower:
-            target = "button"
-        elif "link" in text_lower:
-            target = "link"
-        elif "submit" in text_lower:
-            target = "submit button"
+        target = extract_click_target(text_lower)
         
         return {
             'type': 'automation',
@@ -203,6 +227,46 @@ def parse_intent_rules(text_lower: str) -> Dict[str, Any]:
             'user_input': text_lower,
             'confidence': 0.5
         }
+
+def extract_window_reference(text: str) -> str:
+    """Extract window reference from text"""
+    # Look for common window references
+    if 'this' in text or 'current' in text or 'heimdall' in text:
+        return 'current'
+    elif 'browser' in text or 'chrome' in text or 'firefox' in text:
+        return 'browser'
+    elif 'notepad' in text or 'editor' in text:
+        return 'editor'
+    else:
+        return 'current'
+
+def extract_click_target(text: str) -> str:
+    """Extract click target from text"""
+    if any(word in text for word in ['close', 'x', 'exit']):
+        return 'close button'
+    elif any(word in text for word in ['minimize', 'hide']):
+        return 'minimize button'
+    elif any(word in text for word in ['maximize', 'fullscreen']):
+        return 'maximize button'
+    elif 'submit' in text:
+        return 'submit button'
+    elif 'ok' in text:
+        return 'ok button'
+    elif 'cancel' in text:
+        return 'cancel button'
+    elif 'save' in text:
+        return 'save button'
+    elif 'button' in text:
+        # Extract the word before 'button'
+        words = text.split()
+        for i, word in enumerate(words):
+            if word == 'button' and i > 0:
+                return f"{words[i-1]} button"
+        return 'button'
+    elif 'link' in text:
+        return 'link'
+    else:
+        return 'button'
 
 def generate_fallback_reply(text: str, intent: Dict[str, Any]) -> str:
     """

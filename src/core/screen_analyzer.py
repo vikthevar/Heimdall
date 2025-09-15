@@ -217,17 +217,31 @@ class ScreenAnalyzer:
         x, y, w, h = element.bbox
         return (x + w // 2, y + h // 2)
 
-def capture_fullscreen_and_ocr() -> str:
+def capture_fullscreen_and_ocr(window_title: str = None) -> str:
     """
-    Capture fullscreen screenshot and extract text using OCR
+    Capture screenshot and extract text using OCR
+    
+    Args:
+        window_title: Optional window title to capture specific window
     
     Returns:
         Extracted text content from the screen
     """
     try:
-        # Capture screenshot
-        from PIL import ImageGrab
-        screenshot = ImageGrab.grab()
+        # Import window capture function
+        from core.screen_controller import capture_window_screenshot
+        
+        # Capture screenshot (window-specific or fullscreen)
+        if window_title:
+            screenshot = capture_window_screenshot(window_title)
+            source_info = f"Window: {window_title}"
+        else:
+            from PIL import ImageGrab
+            screenshot = ImageGrab.grab()
+            source_info = "Full Screen"
+        
+        if not screenshot:
+            return "❌ Failed to capture screenshot"
         
         # Convert to numpy array for processing
         img_array = np.array(screenshot)
@@ -238,7 +252,7 @@ def capture_fullscreen_and_ocr() -> str:
         # Convert to grayscale for better OCR
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         
-        # Apply some preprocessing to improve OCR
+        # Apply preprocessing to improve OCR
         # Increase contrast
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         enhanced = clahe.apply(gray)
@@ -249,18 +263,93 @@ def capture_fullscreen_and_ocr() -> str:
         # Extract text using Tesseract
         text = pytesseract.image_to_string(denoised, config='--psm 6')
         
+        # Also detect UI elements
+        ui_elements = detect_ui_elements(img_bgr)
+        
         # Clean up the text
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         cleaned_text = '\n'.join(lines)
         
+        # Format result
+        result = f"📖 **Screen Analysis ({source_info}):**\n\n"
+        
         if cleaned_text:
-            return f"📖 **Screen Content:**\n\n{cleaned_text}"
-        else:
-            return "📖 Screen captured but no readable text found. The screen may contain mostly images or graphics."
+            result += f"**Text Content:**\n{cleaned_text}\n\n"
+        
+        if ui_elements:
+            result += f"**UI Elements Detected:**\n"
+            for element in ui_elements[:10]:  # Limit to first 10
+                result += f"• {element['type']}: {element['description']}\n"
+        
+        if not cleaned_text and not ui_elements:
+            result += "No readable text or UI elements found. The screen may contain mostly images or graphics."
+        
+        return result
     
     except Exception as e:
         logger.error(f"Screen capture and OCR failed: {e}")
         return f"❌ Failed to capture and analyze screen: {str(e)}"
+
+def detect_ui_elements(img_bgr: np.ndarray) -> List[Dict[str, Any]]:
+    """
+    Detect UI elements in the image
+    
+    Args:
+        img_bgr: OpenCV image in BGR format
+        
+    Returns:
+        List of detected UI elements
+    """
+    elements = []
+    
+    try:
+        # Convert to grayscale
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        
+        # Detect buttons using edge detection
+        edges = cv2.Canny(gray, 50, 150)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if 500 < area < 50000:  # Reasonable button size
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = w / h
+                
+                # Classify based on aspect ratio and size
+                if 0.3 < aspect_ratio < 5.0:
+                    if aspect_ratio > 2.0:
+                        element_type = "input_field"
+                    else:
+                        element_type = "button"
+                    
+                    elements.append({
+                        'type': element_type,
+                        'description': f"{element_type} at ({x+w//2}, {y+h//2})",
+                        'bbox': (x, y, w, h),
+                        'center': (x + w//2, y + h//2)
+                    })
+        
+        # Detect window controls (close, minimize, maximize buttons)
+        height, width = gray.shape
+        
+        # Look for close button in top-right
+        top_right = gray[0:50, width-100:width]
+        if top_right.size > 0:
+            # Look for circular or square patterns
+            circles = cv2.HoughCircles(top_right, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=5, maxRadius=25)
+            if circles is not None:
+                elements.append({
+                    'type': 'close_button',
+                    'description': 'Close button (top-right)',
+                    'center': (width - 50, 25)
+                })
+        
+        return elements[:20]  # Limit results
+    
+    except Exception as e:
+        logger.error(f"UI element detection failed: {e}")
+        return []
 
 
 def list_open_windows() -> List[Dict[str, Any]]:
